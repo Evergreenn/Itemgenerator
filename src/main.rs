@@ -1,11 +1,14 @@
+extern crate strum; // 0.10.0
+#[macro_use]
+extern crate strum_macros; // 0.10.0
+use strum::AsStaticRef;
 use rand::{
     Rng,
     distributions::{Distribution, Standard},
 };
 use rand::prelude::*;
 
-
-
+#[derive(AsStaticStr)]
 enum WpnAilment {
     None,
     Poison,
@@ -15,58 +18,29 @@ enum WpnAilment {
     Sleep
 }
 
-
-#[derive(Debug)]
-struct PoisonAliment {
-    Bacteria :(String, u8),
-    Contaminated :(String, u8),
-    Tainted :(String, u8),
-    Toxic :(String, u8),
-    Infected :(String, u8),
-    Viral :(String, u8),
-    Venomous :(String, u8),
-    Virulent :(String, u8),
-    Noxious :(String, u8), 
-    Biohazardous :(String, u8)
-}
-
-
-// enum PoisonAliment {
-//     Bacteria = 10,
-//     Contaminated = 20,
-//     Tainted = 30,
-//     Toxic =  40,
-//     Infected = 50,
-//     Viral = 60,
-//     Venomous = 70,
-//     Virulent = 80,
-//     Noxious = 90, 
-//     Biohazardous = 100
-// }
-
-
+#[derive(AsStaticStr)]
 enum WpnElement {
     None,
     Fire,
-    Water,
-    Earth,              //If weapon rarity >= rare !legendary it can have an element. A staff is most likely to have an element than any other weapon type.
-    Wind,               //A weapon can have up to two elements, and the name of item will reflect that. The only invalid combinations
-    Light,              //are: Fire + Water, Earth + Wind, and Light + Dark.       
-    Dark 
+    Water,               //A weapon can come with a status effect. Weapons can only have one status effect enabled.
+    Earth,             //The success rate of landing an effect is determined by the suffix in the item name.
+    Light,
+    Dark
 }
 
-impl Distribution<WpnAilment> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> WpnAilment {
-        match rng.gen_range(0, 6) {
-            0 => WpnAilment::None,
-            1 => WpnAilment::Poison,
-            2 => WpnAilment::Stun,
-            3 => WpnAilment::Freeze,
-            5 => WpnAilment::Death,
-            6 => WpnAilment::Sleep,
-            _ => WpnAilment::None,
-        }
-    }
+
+#[derive(Debug, AsStaticStr)]
+enum PoisonAliment {
+    Bacteria = 10,
+    Contaminated = 20,
+    Tainted = 30,
+    Toxic =  40,
+    Infected = 50,
+    Viral = 60,
+    Venomous = 70,
+    Virulent = 80,
+    Noxious = 90, 
+    Biohazardous = 100
 }
 
 impl Distribution<PoisonAliment> for Standard {
@@ -87,6 +61,97 @@ impl Distribution<PoisonAliment> for Standard {
     }
 }
 
+#[derive(Debug, AsStaticStr)]
+enum StunAliment {
+    Tingling = 10,
+    Numbing = 20,
+    Stiffening = 30,
+    Immobilizing =  40,
+    Disabling = 50,
+    Debilitating = 60,
+    Paralyzing = 70,
+    Disarming = 80,
+    Arresting = 90, 
+    Enfeebling = 100
+}
+
+impl Distribution<StunAliment> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StunAliment {
+        match rng.gen_range(0, 9) {
+            0 => StunAliment::Tingling,
+            1 => StunAliment::Numbing,
+            2 => StunAliment::Stiffening,
+            3 => StunAliment::Immobilizing,
+            4 => StunAliment::Disabling,
+            5 => StunAliment::Debilitating,
+            6 => StunAliment::Paralyzing,
+            7 => StunAliment::Disarming,
+            8 => StunAliment::Arresting,
+            9 => StunAliment::Enfeebling,
+            _ => StunAliment::Tingling,
+        }
+    }
+}
+
+
+
+#[derive(Debug, AsStaticStr)]
+enum FireElement {
+    Heat = 10,
+    Charring = 20,
+    Embers = 30,
+    Searing =  40,
+    Bonfire = 50,
+    Incandescence = 60,
+    Brimstone = 70,
+    Flames = 80,
+    Combustion = 90, 
+    Inferno = 100
+}
+
+
+
+// #[derive(Debug, AsStaticStr)]
+// enum WpnElement {
+//     None,
+//     Fire,
+//     Water,
+//     Earth,              //If weapon rarity >= rare !legendary it can have an element. A staff is most likely to have an element than any other weapon type.
+//     Wind,               //A weapon can have up to two elements, and the name of item will reflect that. The only invalid combinations
+//     Light,              //are: Fire + Water, Earth + Wind, and Light + Dark.       
+//     Dark 
+// }
+
+impl Distribution<WpnAilment> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> WpnAilment {
+        match rng.gen_range(0, 6) {
+            0 => WpnAilment::None,
+            1 => WpnAilment::Poison,
+            2 => WpnAilment::Stun,
+            3 => WpnAilment::Freeze,
+            5 => WpnAilment::Death,
+            6 => WpnAilment::Sleep,
+            _ => WpnAilment::None,
+        }
+    }
+}
+
+// impl Distribution<WpnAilment> for Standard {
+//     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> WpnAilment {
+//         match rng.gen_range(0, 6) {
+//             0 => WpnAilment::None,
+//             1 => WpnAilment::Poison,
+//             2 => WpnAilment::Stun,
+//             3 => WpnAilment::Freeze,
+//             5 => WpnAilment::Death,
+//             6 => WpnAilment::Sleep,
+//             _ => WpnAilment::None,
+//         }
+//     }
+// }
+
+
+
 
 #[derive(Debug)]
 pub struct Weapon {
@@ -101,7 +166,7 @@ pub struct Weapon {
     max_damage: u8,
     pub element: Option<String>,
     pub ailment: Option<String>,
-    pub caracteristics_augmentation: Option<String>,
+    pub caracteristics_augmentation: Option<(String, u8)>,
     pub special: Option<String>
 }
 
@@ -127,14 +192,9 @@ impl Weapon {
         let mut rng = rand::thread_rng();
         rng.gen::<u32>()
     }
-    // fn generate_name() -> String {
-    //     use rand::distributions::Alphanumeric;
-    //     //TODO: use a dictionnary for naming
-    //     let  rng = rand::thread_rng();
-    //     return rng.sample_iter(&Alphanumeric)
-    //     .take(10)
-    //     .collect::<String>();
-    // }
+    fn generate_ailment(&mut self, ailment : String) -> () {
+        self.ailment = Some(ailment);
+    }
     fn generate_ilvl() -> u8 {
         //TODO: ilvl should be related to item power
         //TODO: High ilvl should be rarest
@@ -142,7 +202,7 @@ impl Weapon {
         rng.gen::<u8>()
     }
     fn generate_equip_type() -> String {
-        let placeholders = ["sword", "dagger"];
+        let placeholders = [" sword ", " dagger ", " bow ", " mace ", " axe "];
         placeholders.choose(&mut rand::thread_rng()).unwrap().to_string()
     }
     fn generate_rarity() -> String {
@@ -164,22 +224,59 @@ impl Weapon {
 
 fn main() {
 
-
-    let itm = Weapon::generate();
+    let mut itm = Weapon::generate();
 
     let wpn_ailment: WpnAilment = rand::random();
 
-    let wap = match wpn_ailment {
-        WpnAilment::Poison => {
-            let wpn_alignment_power: PoisonAliment = rand::random();
-            
-            println!("Rectangle perimeter: {:#?} ", wpn_alignment_power,); // print Noxious
-        },
-        _ => ()
+    if  itm.rarity == String::from("magic")  || itm.rarity == String::from("rare") || itm.rarity == String::from("epic")
+    {
+        let wap = match wpn_ailment {
+            WpnAilment::Poison => {
+                let wpn_alignment_power: PoisonAliment = rand::random();
+                itm.generate_ailment(String::from(WpnAilment::Poison.as_static()));
 
-    };
+                let mut name :String = wpn_alignment_power.as_static().to_owned();
+                name.push_str(&itm.type_equip);
+                itm.name =  Some(name); // Toxic dagger
+                itm.caracteristics_augmentation = Some((String::from( WpnAilment::Poison.as_static()), wpn_alignment_power as u8));
+            },
+            WpnAilment::Stun => {
+                let wpn_alignment_power: StunAliment = rand::random();
+                itm.generate_ailment(String::from(WpnAilment::Stun.as_static()));
+
+                let mut name :String = wpn_alignment_power.as_static().to_owned();
+                name.push_str(&itm.type_equip);
+                itm.name =  Some(name); // Toxic dagger
+                itm.caracteristics_augmentation = Some((String::from( WpnAilment::Stun.as_static()), wpn_alignment_power as u8));
+            },
+            _ => (
+                if itm.rarity == String::from("magic"){
+                    let mut name :String = String::from("magic");
+                    name.push_str(&itm.type_equip);
+                    itm.name = Some(name);
+                } else if itm.rarity == String::from("rare") {
+                    let mut name :String = String::from("rare");
+                    name.push_str(&itm.type_equip);
+                    itm.name = Some(name);
+                } else if itm.rarity == String::from("epic") {
+                    let mut name :String = String::from("epic");
+                    name.push_str(&itm.type_equip);
+                    itm.name = Some(name);
+                }
+                
+            )
+    
+        };
+
+    } else if itm.rarity == String::from("common") {
+        let mut name :String = String::from("common");
+        name.push_str(&itm.type_equip);
+        itm.name = Some(name);
+    }
+
+   
 
     
 
-    println!("Rectangle perimeter: {:#?}", itm);
+    println!("{:#?}", itm);
 }
