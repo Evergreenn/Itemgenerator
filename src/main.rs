@@ -6,8 +6,6 @@ use rand::{
     Rng,
     distributions::{WeightedIndex, Distribution, Standard},
 };
-use rand::prelude::*;
-
 
 const PLAYER_LEVEL:u8 = 20;
 
@@ -166,6 +164,12 @@ enum Slot {
     Chest
 }
 
+enum ItemType{
+    Weapon,
+    Armor,
+    Consumable
+}
+
 #[derive(Debug, AsStaticStr, Clone, Copy)]
 enum TypeEquip {
     Sword,
@@ -227,7 +231,7 @@ struct Weapon {
     pub min_damage: u16,
     pub max_damage: u16,
     pub element: Option<WpnElement>,
-    pub ailment: Option<WpnAilment>,
+    pub ailment: Option<(WpnAilment, u8)>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -236,8 +240,8 @@ struct Armor {
     resistances: u8
 }
 
-impl Weapon {
-    fn generate() -> Object {
+impl Object {
+    fn generate(itemtype: ItemType) -> Object {
         let mut rng = rand::thread_rng();
         let id = rng.gen::<u32>();
 
@@ -320,44 +324,103 @@ impl Weapon {
             _ => unreachable!(),
         };
 
-        // let placeholders = TypeEquip.choose(&mut rand::thread_rng()).unwrap().to_string();
-
         let placeholders: TypeEquip = rand::random();
-        // let equipe_type = placeholders
 
-        let lol = match ilvl {
+        let ilvltuple = match ilvl {
             0..=50 =>{
                 let min_damage = rng.gen_range(3, 125);
                 let max_damage = rng.gen_range(min_damage, 158);
-                (min_damage, max_damage, Some(String::from("common")))
+                (min_damage, max_damage, String::from("common"))
             },
             51..=90 =>{
                 let min_damage = rng.gen_range(75, 200);
                 let max_damage = rng.gen_range(min_damage, 253);
-                (min_damage, max_damage, Some(String::from("magic")))
+                (min_damage, max_damage, String::from("magic"))
             },
             91..=140 =>{
                 let min_damage = rng.gen_range(150, 349);
                 let max_damage = rng.gen_range(min_damage, 442);
-                (min_damage, max_damage, Some(String::from("rare")))
+                (min_damage, max_damage, String::from("rare"))
             },
             141..=190 =>{
                 let min_damage = rng.gen_range(299, 473);
                 let max_damage = rng.gen_range(min_damage, 599);
-                (min_damage, max_damage, Some(String::from("epic")))
+                (min_damage, max_damage, String::from("epic"))
             },
             191..=255 =>{
                 let min_damage = rng.gen_range(498, 635);
                 let max_damage = rng.gen_range(min_damage, 804);
-                (min_damage, max_damage, Some(String::from("legendary")))
+                (min_damage, max_damage, String::from("legendary"))
             },
+        };
+
+        let wpn_ailment: WpnAilment = rand::random();
+
+        let globaltuple = if  ilvltuple.2 == String::from("magic")  || ilvltuple.2 == String::from("rare") || ilvltuple.2 == String::from("epic")
+        {
+            let ailmenttuple = match wpn_ailment {
+                WpnAilment::Poison => {
+                    let wpn_alignment_power: PoisonAliment = rand::random();
+                    let mut name :String = wpn_alignment_power.as_static().to_owned();
+                    name.push_str(&placeholders.to_string());
+                    let itm_name = name; // Toxic dagger
+
+                    let caracteristics_augmentation = Some((WpnAilment::Poison, wpn_alignment_power as u8));
+                    (itm_name, caracteristics_augmentation)
+                },
+                WpnAilment::Stun => {
+                    let wpn_alignment_power: StunAliment = rand::random();
+                    let mut name :String = wpn_alignment_power.as_static().to_owned();
+                    name.push_str(&placeholders.to_string());
+                    let itm_name =  name; // Toxic dagger
+
+                    let caracteristics_augmentation = Some((WpnAilment::Stun, wpn_alignment_power as u8));
+                    (itm_name, caracteristics_augmentation)
+                },
+                _ => {
+                    let result = match ilvltuple.2.as_str() {
+                        "magic" =>{
+                            let mut s = String::from("magic");
+                            s.push_str(&placeholders.to_string());
+                            (s, Some((WpnAilment::None, 0 as u8)))
+                        },
+                       "rare" =>{
+                            let mut s = String::from("rare");
+                            s.push_str(&placeholders.to_string());
+                            (s, Some((WpnAilment::None, 0 as u8)))
+                        },
+                        "epic" =>{
+                            let mut s = String::from("epic");
+                            s.push_str(&placeholders.to_string());
+                            (s, Some((WpnAilment::None, 0 as u8)))
+                        }
+                        _ => {
+                            (String::from("none"), Some((WpnAilment::None, 0 as u8)))
+                        }
+                    };
+                    result
+
+                }
+    
+            };
+
+            ailmenttuple
+
+        } else if ilvltuple.2 == String::from("common") {
+            let mut s = String::from("common");
+             s.push_str(&placeholders.to_string());
+            (s, Some((WpnAilment::None, 0 as u8)))
+        }else{
+            let mut s = String::from("legendary");
+             s.push_str(&placeholders.to_string());
+            (s, Some((WpnAilment::None, 0 as u8)))
         };
 
         Object {
             id: id,
-            name: None,
+            name: Some(globaltuple.0),
             ilevel: ilvl,
-            rarity: lol.2,
+            rarity: Some(ilvltuple.2),
             equipement: Some(
                 Equipment{
                     slot: Slot::RightHand,
@@ -365,10 +428,10 @@ impl Weapon {
                     equipped: false,
                     weapon:Some(
                         Weapon{
-                            min_damage: lol.0,
-                            max_damage: lol.1,
+                            min_damage: ilvltuple.0,
+                            max_damage: ilvltuple.1,
                             element: None,
-                            ailment: None,
+                            ailment: Some(globaltuple.1.unwrap()),
                         }
                     ),
                     armor:None,
@@ -378,67 +441,16 @@ impl Weapon {
             )
         }
     }
-    // fn generate_ailment(&mut self, ailment : String) -> () {
-    //     self.ailment = Some(ailment);
-    // }
+
 }
 
 
 fn main() {
 
-    let mut itm = Weapon::generate();
-    let wpn_ailment: WpnAilment = rand::random();
+    let mut itm = Object::generate(ItemType::Weapon);
+    // let wpn_ailment: WpnAilment = rand::random();
 
-    if  itm.rarity == Some(String::from("magic"))  || itm.rarity == Some(String::from("rare")) || itm.rarity == Some(String::from("epic"))
-    {
-        match wpn_ailment {
-            WpnAilment::Poison => {
-                let wpn_alignment_power: PoisonAliment = rand::random();
-                itm.equipement.unwrap().weapon.unwrap().ailment = Some(WpnAilment::Poison);
-                // itm.equipement.unwrap().weapon.unwrap().generate_ailment(String::from(WpnAilment::Poison.as_static()));
-
-                let mut name :String = wpn_alignment_power.as_static().to_owned();
-                name.push_str(&itm.equipement.unwrap().type_equip.to_string());
-                itm.name =  Some(name); // Toxic dagger
-                // itm.equipement.unwrap().caracteristics_augmentation = Some((String::from( WpnAilment::Poison.as_static()), wpn_alignment_power as u8));
-            },
-            WpnAilment::Stun => {
-                let wpn_alignment_power: StunAliment = rand::random();
-                // itm.equipement.unwrap().weapon.unwrap().generate_ailment(String::from(WpnAilment::Stun.as_static()));
-                itm.equipement.unwrap().weapon.unwrap().ailment = Some(WpnAilment::Stun);
-
-                // itm.equipement.unwrap().weapon.unwrap().generate_ailment(String::from(WpnAilment::Stun.as_static()));
-
-
-                let mut name :String = wpn_alignment_power.as_static().to_owned();
-                name.push_str(&itm.equipement.unwrap().type_equip.to_string());
-                itm.name =  Some(name); // Toxic dagger
-                // itm.equipement.unwrap().caracteristics_augmentation = Some((String::from( WpnAilment::Stun.as_static()), wpn_alignment_power as u8));
-            },
-            _ => (
-                if itm.rarity == Some(String::from("magic")){
-                    let mut name :String = String::from("magic");
-                    name.push_str(&itm.equipement.unwrap().type_equip.to_string());
-                    itm.name = Some(name);
-                } else if itm.rarity == Some(String::from("rare")) {
-                    let mut name :String = String::from("rare");
-                    name.push_str(&itm.equipement.unwrap().type_equip.to_string());
-                    itm.name = Some(name);
-                } else if itm.rarity == Some(String::from("epic")) {
-                    let mut name :String = String::from("epic");
-                    name.push_str(&itm.equipement.unwrap().type_equip.to_string());
-                    itm.name = Some(name);
-                }
-                
-            )
     
-        };
-
-    } else if itm.rarity == Some(String::from("common")) {
-        let mut name :String = String::from("common");
-        name.push_str(&itm.equipement.unwrap().type_equip.to_string());
-        itm.name = Some(name);
-    }
 
     println!("{:#?}", itm);
 }
