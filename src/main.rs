@@ -4,9 +4,12 @@ extern crate strum_macros; // 0.10.0
 use strum::AsStaticRef;
 use rand::{
     Rng,
-    distributions::{Distribution, Standard},
+    distributions::{WeightedIndex, Distribution, Standard},
 };
 use rand::prelude::*;
+
+
+const PLAYER_LEVEL:u8 = 20;
 
 #[derive(AsStaticStr)]
 enum WpnAilment {
@@ -18,15 +21,15 @@ enum WpnAilment {
     Sleep
 }
 
-#[derive(AsStaticStr)]
-enum WpnElement {
-    None,
-    Fire,
-    Water,               //A weapon can come with a status effect. Weapons can only have one status effect enabled.
-    Earth,             //The success rate of landing an effect is determined by the suffix in the item name.
-    Light,
-    Dark
-}
+// #[derive(AsStaticStr)]
+// enum WpnElement {
+//     None,
+//     Fire,
+//     Water,               //A weapon can come with a status effect. Weapons can only have one status effect enabled.
+//     Earth,             //The success rate of landing an effect is determined by the suffix in the item name.
+//     Light,
+//     Dark
+// }
 
 
 #[derive(Debug, AsStaticStr)]
@@ -95,19 +98,19 @@ impl Distribution<StunAliment> for Standard {
 
 
 
-#[derive(Debug, AsStaticStr)]
-enum FireElement {
-    Heat = 10,
-    Charring = 20,
-    Embers = 30,
-    Searing =  40,
-    Bonfire = 50,
-    Incandescence = 60,
-    Brimstone = 70,
-    Flames = 80,
-    Combustion = 90, 
-    Inferno = 100
-}
+// #[derive(Debug, AsStaticStr)]
+// enum FireElement {
+//     Heat = 10,
+//     Charring = 20,
+//     Embers = 30,
+//     Searing =  40,
+//     Bonfire = 50,
+//     Incandescence = 60,
+//     Brimstone = 70,
+//     Flames = 80,
+//     Combustion = 90, 
+//     Inferno = 100
+// }
 
 
 
@@ -151,6 +154,10 @@ impl Distribution<WpnAilment> for Standard {
 // }
 
 
+struct Transition {
+    level: u8,
+    value: u8,
+}
 
 
 #[derive(Debug)]
@@ -159,11 +166,10 @@ pub struct Weapon {
     pub name: Option<String>,
     ilevel: u8,
     type_equip: String, //Maybe pass a struct here
-    tx_drop: f32,
     lvl_req: u8,
-    rarity: String,
-    min_damage: u8,
-    max_damage: u8,
+    rarity: Option<String>,
+    min_damage: u16,
+    max_damage: u16,
     pub element: Option<String>,
     pub ailment: Option<String>,
     pub caracteristics_augmentation: Option<(String, u8)>,
@@ -172,54 +178,112 @@ pub struct Weapon {
 
 impl Weapon {
     fn generate() -> Weapon {
+        let mut rng = rand::thread_rng();
+        let id = rng.gen::<u32>();
+
+
+        fn chances(table: &[Transition], level: u8) -> u8 {
+            table
+                .iter()
+                .rev()
+                .find(|transition| level >= transition.level)
+                .map_or(0, |transition| transition.value)
+        }
+
+        let common_chance = chances(
+            &[
+                Transition {level: 3, value: 90,},
+                Transition {level: 10, value: 70,},
+                Transition {level: 20, value: 55,},
+            ],
+            PLAYER_LEVEL
+        );
+        let magic_chance = chances(
+            &[
+                Transition {level: 3, value: 5,},
+                Transition {level: 10, value: 15,},
+                Transition {level: 20, value: 20,},
+            ],
+            PLAYER_LEVEL
+        );
+        let rare_chance = chances(
+            &[
+                Transition {level: 3, value: 3,},
+                Transition {level: 10, value: 10,},
+                Transition {level: 20, value: 15,},
+            ],
+            PLAYER_LEVEL
+        );
+        let epic_chance = chances(
+            &[
+                Transition {level: 3, value: 2,},
+                Transition {level: 10, value: 4,},
+                Transition {level: 20, value: 8,},
+            ],
+            PLAYER_LEVEL
+        );
+        let legendary_chance = chances(
+            &[
+                Transition {level: 3, value: 1,},
+                Transition {level: 10, value: 1,},
+                Transition {level: 20, value: 2,},
+            ],
+            PLAYER_LEVEL
+        );
+
+        let choices = ["common", "magic", "rare", "epic", "legendary"];
+    
+    
+        let weights = [common_chance, magic_chance, rare_chance, epic_chance, legendary_chance];
+        let rariry_choice = WeightedIndex::new(&weights).unwrap();
+
+        let ilvl = match choices[rariry_choice.sample(&mut rand::thread_rng())] {
+            "common" => {
+                let mut rng = rand::thread_rng();
+                rng.gen_range(0, 50)
+            },
+            "magic" => {
+                let mut rng = rand::thread_rng();
+                rng.gen_range(51, 90)
+            },
+            "rare" => {
+                let mut rng = rand::thread_rng();
+                rng.gen_range(91, 140)
+            },
+            "epic" => {
+                let mut rng = rand::thread_rng();
+                rng.gen_range(141, 190)
+            },
+            "legendary" => {
+                let mut rng = rand::thread_rng();
+                rng.gen_range(191, 255)
+            }
+            _ => unreachable!(),
+        };
+
         Weapon {
-            id: Weapon::generate_id(),
+            id: id,
             name: None,
-            ilevel: Weapon::generate_ilvl(),
+            ilevel: ilvl,
             type_equip: Weapon::generate_equip_type(),
-            tx_drop: 1.12,
             lvl_req: 60,
-            rarity: Weapon::generate_rarity(),
-            min_damage: Weapon::generate_min_damage(),
-            max_damage: Weapon::generate_max_damage(),
+            rarity: None,
+            min_damage: 0,
+            max_damage: 0,
             element: None, //
             ailment: None, //status effect. Weapons can only have one status effect enabled
             caracteristics_augmentation: None,
-            special: Some(String::from("lol"))
+            special: None
         }
     }
-    fn generate_id() -> u32 {
-        let mut rng = rand::thread_rng();
-        rng.gen::<u32>()
-    }
+
     fn generate_ailment(&mut self, ailment : String) -> () {
         self.ailment = Some(ailment);
-    }
-    fn generate_ilvl() -> u8 {
-        //TODO: ilvl should be related to item power
-        //TODO: High ilvl should be rarest
-        let mut rng = rand::thread_rng();
-        rng.gen::<u8>()
     }
     fn generate_equip_type() -> String {
         let placeholders = [" sword ", " dagger ", " bow ", " mace ", " axe "];
         placeholders.choose(&mut rand::thread_rng()).unwrap().to_string()
     }
-    fn generate_rarity() -> String {
-        let placeholders = ["common", "magic", "rare", "epic", "legendary"];
-        placeholders.choose(&mut rand::thread_rng()).unwrap().to_string()
-    }
-    fn generate_min_damage() -> u8 {
-        //TODO need to be boud to rarity and ilevel
-        let mut rng = rand::thread_rng();
-        rng.gen_range(0, 100)
-    }
-    fn generate_max_damage() -> u8 {
-        //TODO need to be boud to rarity and ilevel
-        let mut rng = rand::thread_rng();
-        rng.gen_range(101, 255)
-    }
-   
 }
 
 fn main() {
@@ -227,8 +291,39 @@ fn main() {
     let mut itm = Weapon::generate();
 
     let wpn_ailment: WpnAilment = rand::random();
+    let mut rng = rand::thread_rng();
 
-    if  itm.rarity == String::from("magic")  || itm.rarity == String::from("rare") || itm.rarity == String::from("epic")
+    match itm.ilevel {
+        0..=50 =>{
+            itm.min_damage = rng.gen_range(3, 125);
+            itm.max_damage = rng.gen_range(itm.min_damage, 158);
+            itm.rarity = Some(String::from("common"))
+        },
+        51..=90 =>{
+            itm.min_damage = rng.gen_range(75, 200);
+            itm.max_damage = rng.gen_range(itm.min_damage, 253);
+            itm.rarity = Some(String::from("magic"))
+        }
+        91..=140 =>{
+            itm.min_damage = rng.gen_range(150, 349);
+            itm.max_damage = rng.gen_range(itm.min_damage, 442);
+            itm.rarity = Some(String::from("rare"))
+        }
+        141..=190 =>{
+            itm.min_damage = rng.gen_range(299, 473);
+            itm.max_damage = rng.gen_range(itm.min_damage, 599);
+            itm.rarity = Some(String::from("epic"))
+        }
+        191..=255 =>{
+            itm.min_damage = rng.gen_range(498, 635);
+            itm.max_damage = rng.gen_range(itm.min_damage, 804);
+            itm.rarity = Some(String::from("legendary"))
+        }
+        _ =>()
+    }
+
+
+    if  itm.rarity == Some(String::from("magic"))  || itm.rarity == Some(String::from("rare")) || itm.rarity == Some(String::from("epic"))
     {
         let wap = match wpn_ailment {
             WpnAilment::Poison => {
@@ -250,15 +345,15 @@ fn main() {
                 itm.caracteristics_augmentation = Some((String::from( WpnAilment::Stun.as_static()), wpn_alignment_power as u8));
             },
             _ => (
-                if itm.rarity == String::from("magic"){
+                if itm.rarity == Some(String::from("magic")){
                     let mut name :String = String::from("magic");
                     name.push_str(&itm.type_equip);
                     itm.name = Some(name);
-                } else if itm.rarity == String::from("rare") {
+                } else if itm.rarity == Some(String::from("rare")) {
                     let mut name :String = String::from("rare");
                     name.push_str(&itm.type_equip);
                     itm.name = Some(name);
-                } else if itm.rarity == String::from("epic") {
+                } else if itm.rarity == Some(String::from("epic")) {
                     let mut name :String = String::from("epic");
                     name.push_str(&itm.type_equip);
                     itm.name = Some(name);
@@ -268,15 +363,11 @@ fn main() {
     
         };
 
-    } else if itm.rarity == String::from("common") {
+    } else if itm.rarity == Some(String::from("common")) {
         let mut name :String = String::from("common");
         name.push_str(&itm.type_equip);
         itm.name = Some(name);
     }
-
-   
-
-    
 
     println!("{:#?}", itm);
 }
