@@ -11,7 +11,7 @@ use rand::prelude::*;
 
 const PLAYER_LEVEL:u8 = 20;
 
-#[derive(AsStaticStr)]
+#[derive(Debug, AsStaticStr, Clone, Copy)]
 enum WpnAilment {
     None,
     Poison,
@@ -21,15 +21,15 @@ enum WpnAilment {
     Sleep
 }
 
-// #[derive(AsStaticStr)]
-// enum WpnElement {
-//     None,
-//     Fire,
-//     Water,               //A weapon can come with a status effect. Weapons can only have one status effect enabled.
-//     Earth,             //The success rate of landing an effect is determined by the suffix in the item name.
-//     Light,
-//     Dark
-// }
+#[derive(Debug, AsStaticStr, Clone, Copy)]
+enum WpnElement {
+    None,
+    Fire,
+    Water,               //A weapon can come with a status effect. Weapons can only have one status effect enabled.
+    Earth,             //The success rate of landing an effect is determined by the suffix in the item name.
+    Light,
+    Dark
+}
 
 
 #[derive(Debug, AsStaticStr)]
@@ -132,8 +132,8 @@ impl Distribution<WpnAilment> for Standard {
             1 => WpnAilment::Poison,
             2 => WpnAilment::Stun,
             3 => WpnAilment::Freeze,
-            5 => WpnAilment::Death,
-            6 => WpnAilment::Sleep,
+            4 => WpnAilment::Death,
+            5 => WpnAilment::Sleep,
             _ => WpnAilment::None,
         }
     }
@@ -159,25 +159,85 @@ struct Transition {
     value: u8,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Slot {
+    RightHand,
+    LeftHand,
+    Chest
+}
+
+#[derive(Debug, AsStaticStr, Clone, Copy)]
+enum TypeEquip {
+    Sword,
+    Dagger,
+    Bow,
+    Mace,
+    Axe
+}
+
+
+impl Distribution<TypeEquip> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> TypeEquip {
+        match rng.gen_range(0, 5) {
+            0 => TypeEquip::Sword,
+            1 => TypeEquip::Dagger,
+            2 => TypeEquip::Bow,
+            3 => TypeEquip::Mace,
+            _ => TypeEquip::Axe,
+        }
+    }
+}
+
+impl std::fmt::Display for TypeEquip {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            TypeEquip::Sword => write!(f, " sword "),
+            TypeEquip::Dagger => write!(f, " dagger "),
+            TypeEquip::Bow => write!(f, " bow "),
+            TypeEquip::Mace => write!(f, " mace "),
+            TypeEquip::Axe => write!(f, " axe ")
+        }
+    }
+}
+
 
 #[derive(Debug)]
-pub struct Weapon {
+struct Object {
     id: u32,
     pub name: Option<String>,
     ilevel: u8,
-    type_equip: String, //Maybe pass a struct here
-    lvl_req: u8,
     rarity: Option<String>,
-    min_damage: u16,
-    max_damage: u16,
-    pub element: Option<String>,
-    pub ailment: Option<String>,
-    pub caracteristics_augmentation: Option<(String, u8)>,
-    pub special: Option<String>
+    pub equipement: Option<Equipment>
+}
+
+
+#[derive(Debug, Clone, Copy)]
+struct Equipment {
+    slot: Slot,
+    type_equip: TypeEquip,
+    equipped: bool,
+    pub weapon: Option<Weapon>,
+    pub armor: Option<Armor>,
+    // pub caracteristics_augmentation: Option<(String, u8)>,
+    // pub special: Option<String>
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Weapon {
+    pub min_damage: u16,
+    pub max_damage: u16,
+    pub element: Option<WpnElement>,
+    pub ailment: Option<WpnAilment>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Armor {
+    armor: u16,
+    resistances: u8
 }
 
 impl Weapon {
-    fn generate() -> Weapon {
+    fn generate() -> Object {
         let mut rng = rand::thread_rng();
         let id = rng.gen::<u32>();
 
@@ -233,7 +293,6 @@ impl Weapon {
 
         let choices = ["common", "magic", "rare", "epic", "legendary"];
     
-    
         let weights = [common_chance, magic_chance, rare_chance, epic_chance, legendary_chance];
         let rariry_choice = WeightedIndex::new(&weights).unwrap();
 
@@ -261,101 +320,113 @@ impl Weapon {
             _ => unreachable!(),
         };
 
-        Weapon {
+        // let placeholders = TypeEquip.choose(&mut rand::thread_rng()).unwrap().to_string();
+
+        let placeholders: TypeEquip = rand::random();
+        // let equipe_type = placeholders
+
+        let lol = match ilvl {
+            0..=50 =>{
+                let min_damage = rng.gen_range(3, 125);
+                let max_damage = rng.gen_range(min_damage, 158);
+                (min_damage, max_damage, Some(String::from("common")))
+            },
+            51..=90 =>{
+                let min_damage = rng.gen_range(75, 200);
+                let max_damage = rng.gen_range(min_damage, 253);
+                (min_damage, max_damage, Some(String::from("magic")))
+            },
+            91..=140 =>{
+                let min_damage = rng.gen_range(150, 349);
+                let max_damage = rng.gen_range(min_damage, 442);
+                (min_damage, max_damage, Some(String::from("rare")))
+            },
+            141..=190 =>{
+                let min_damage = rng.gen_range(299, 473);
+                let max_damage = rng.gen_range(min_damage, 599);
+                (min_damage, max_damage, Some(String::from("epic")))
+            },
+            191..=255 =>{
+                let min_damage = rng.gen_range(498, 635);
+                let max_damage = rng.gen_range(min_damage, 804);
+                (min_damage, max_damage, Some(String::from("legendary")))
+            },
+        };
+
+        Object {
             id: id,
             name: None,
             ilevel: ilvl,
-            type_equip: Weapon::generate_equip_type(),
-            lvl_req: 60,
-            rarity: None,
-            min_damage: 0,
-            max_damage: 0,
-            element: None, //
-            ailment: None, //status effect. Weapons can only have one status effect enabled
-            caracteristics_augmentation: None,
-            special: None
+            rarity: lol.2,
+            equipement: Some(
+                Equipment{
+                    slot: Slot::RightHand,
+                    type_equip:placeholders,
+                    equipped: false,
+                    weapon:Some(
+                        Weapon{
+                            min_damage: lol.0,
+                            max_damage: lol.1,
+                            element: None,
+                            ailment: None,
+                        }
+                    ),
+                    armor:None,
+                    // caracteristics_augmentation: None,
+                    // special: None
+                }
+            )
         }
     }
-
-    fn generate_ailment(&mut self, ailment : String) -> () {
-        self.ailment = Some(ailment);
-    }
-    fn generate_equip_type() -> String {
-        let placeholders = [" sword ", " dagger ", " bow ", " mace ", " axe "];
-        placeholders.choose(&mut rand::thread_rng()).unwrap().to_string()
-    }
+    // fn generate_ailment(&mut self, ailment : String) -> () {
+    //     self.ailment = Some(ailment);
+    // }
 }
+
 
 fn main() {
 
     let mut itm = Weapon::generate();
-
     let wpn_ailment: WpnAilment = rand::random();
-    let mut rng = rand::thread_rng();
-
-    match itm.ilevel {
-        0..=50 =>{
-            itm.min_damage = rng.gen_range(3, 125);
-            itm.max_damage = rng.gen_range(itm.min_damage, 158);
-            itm.rarity = Some(String::from("common"))
-        },
-        51..=90 =>{
-            itm.min_damage = rng.gen_range(75, 200);
-            itm.max_damage = rng.gen_range(itm.min_damage, 253);
-            itm.rarity = Some(String::from("magic"))
-        }
-        91..=140 =>{
-            itm.min_damage = rng.gen_range(150, 349);
-            itm.max_damage = rng.gen_range(itm.min_damage, 442);
-            itm.rarity = Some(String::from("rare"))
-        }
-        141..=190 =>{
-            itm.min_damage = rng.gen_range(299, 473);
-            itm.max_damage = rng.gen_range(itm.min_damage, 599);
-            itm.rarity = Some(String::from("epic"))
-        }
-        191..=255 =>{
-            itm.min_damage = rng.gen_range(498, 635);
-            itm.max_damage = rng.gen_range(itm.min_damage, 804);
-            itm.rarity = Some(String::from("legendary"))
-        }
-        _ =>()
-    }
-
 
     if  itm.rarity == Some(String::from("magic"))  || itm.rarity == Some(String::from("rare")) || itm.rarity == Some(String::from("epic"))
     {
-        let wap = match wpn_ailment {
+        match wpn_ailment {
             WpnAilment::Poison => {
                 let wpn_alignment_power: PoisonAliment = rand::random();
-                itm.generate_ailment(String::from(WpnAilment::Poison.as_static()));
+                itm.equipement.unwrap().weapon.unwrap().ailment = Some(WpnAilment::Poison);
+                // itm.equipement.unwrap().weapon.unwrap().generate_ailment(String::from(WpnAilment::Poison.as_static()));
 
                 let mut name :String = wpn_alignment_power.as_static().to_owned();
-                name.push_str(&itm.type_equip);
+                name.push_str(&itm.equipement.unwrap().type_equip.to_string());
                 itm.name =  Some(name); // Toxic dagger
-                itm.caracteristics_augmentation = Some((String::from( WpnAilment::Poison.as_static()), wpn_alignment_power as u8));
+                // itm.equipement.unwrap().caracteristics_augmentation = Some((String::from( WpnAilment::Poison.as_static()), wpn_alignment_power as u8));
             },
             WpnAilment::Stun => {
                 let wpn_alignment_power: StunAliment = rand::random();
-                itm.generate_ailment(String::from(WpnAilment::Stun.as_static()));
+                // itm.equipement.unwrap().weapon.unwrap().generate_ailment(String::from(WpnAilment::Stun.as_static()));
+                itm.equipement.unwrap().weapon.unwrap().ailment = Some(WpnAilment::Stun);
+
+                // itm.equipement.unwrap().weapon.unwrap().generate_ailment(String::from(WpnAilment::Stun.as_static()));
+
 
                 let mut name :String = wpn_alignment_power.as_static().to_owned();
-                name.push_str(&itm.type_equip);
+                name.push_str(&itm.equipement.unwrap().type_equip.to_string());
                 itm.name =  Some(name); // Toxic dagger
-                itm.caracteristics_augmentation = Some((String::from( WpnAilment::Stun.as_static()), wpn_alignment_power as u8));
+                // itm.equipement.unwrap().caracteristics_augmentation = Some((String::from( WpnAilment::Stun.as_static()), wpn_alignment_power as u8));
             },
             _ => (
                 if itm.rarity == Some(String::from("magic")){
                     let mut name :String = String::from("magic");
-                    name.push_str(&itm.type_equip);
+                    name.push_str(&itm.equipement.unwrap().type_equip.to_string());
                     itm.name = Some(name);
                 } else if itm.rarity == Some(String::from("rare")) {
                     let mut name :String = String::from("rare");
-                    name.push_str(&itm.type_equip);
+                    name.push_str(&itm.equipement.unwrap().type_equip.to_string());
                     itm.name = Some(name);
                 } else if itm.rarity == Some(String::from("epic")) {
                     let mut name :String = String::from("epic");
-                    name.push_str(&itm.type_equip);
+                    name.push_str(&itm.equipement.unwrap().type_equip.to_string());
                     itm.name = Some(name);
                 }
                 
@@ -365,7 +436,7 @@ fn main() {
 
     } else if itm.rarity == Some(String::from("common")) {
         let mut name :String = String::from("common");
-        name.push_str(&itm.type_equip);
+        name.push_str(&itm.equipement.unwrap().type_equip.to_string());
         itm.name = Some(name);
     }
 
