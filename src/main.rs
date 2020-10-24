@@ -164,6 +164,7 @@ enum Slot {
     Chest
 }
 
+#[derive(PartialEq)]
 enum ItemType{
     Weapon,
     Armor,
@@ -208,10 +209,12 @@ impl std::fmt::Display for TypeEquip {
 #[derive(Debug)]
 struct Object {
     id: u32,
-    pub name: Option<String>,
+    pub name: String,
     ilevel: u8,
-    rarity: Option<String>,
-    pub equipement: Option<Equipment>
+    rarity: String,
+    pub equipement: Option<Equipment>,
+    pub caracteristics_augmentation: Option<(String, u8)>,
+    pub special: Option<Special>
 }
 
 
@@ -222,8 +225,7 @@ struct Equipment {
     equipped: bool,
     pub weapon: Option<Weapon>,
     pub armor: Option<Armor>,
-    // pub caracteristics_augmentation: Option<(String, u8)>,
-    // pub special: Option<String>
+
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -235,16 +237,20 @@ struct Weapon {
 }
 
 #[derive(Debug, Clone, Copy)]
+struct Special {
+    pub heal: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
 struct Armor {
     armor: u16,
     resistances: u8
 }
 
-impl Object {
-    fn generate(itemtype: ItemType) -> Object {
+impl Weapon {
+    fn generate() -> Object {
         let mut rng = rand::thread_rng();
         let id = rng.gen::<u32>();
-
 
         fn chances(table: &[Transition], level: u8) -> u8 {
             table
@@ -418,9 +424,9 @@ impl Object {
 
         Object {
             id: id,
-            name: Some(globaltuple.0),
+            name: globaltuple.0,
             ilevel: ilvl,
-            rarity: Some(ilvltuple.2),
+            rarity: ilvltuple.2,
             equipement: Some(
                 Equipment{
                     slot: Slot::RightHand,
@@ -435,22 +441,39 @@ impl Object {
                         }
                     ),
                     armor:None,
-                    // caracteristics_augmentation: None,
-                    // special: None
                 }
-            )
+            ),
+            caracteristics_augmentation: None,
+            special: None
         }
     }
 
 }
 
+impl Object{
+    fn generate(name: String, rarity: String, special: u16) -> Object {
+
+        let mut rng = rand::thread_rng();
+
+        Object {
+            id: rng.gen::<u32>(),
+            name: name,
+            ilevel: 1,
+            rarity: rarity,
+            equipement: None,
+            caracteristics_augmentation: None,
+            special: Some(Special{heal:special})
+        }
+    }
+}
+
 
 fn main() {
 
-    let mut itm = Object::generate(ItemType::Weapon);
-    // let wpn_ailment: WpnAilment = rand::random();
-
-    
-
+    let itm = Weapon::generate();
     println!("{:#?}", itm);
+
+    let obj = Object::generate(String::from("Life potion"), String::from("common"), 25);
+    println!("{:#?}", obj);
+
 }
